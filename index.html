@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video with Multiple Subtitles and History</title>
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+        .sidebar {
+            width: 20%;
+            background-color: #2c3e50;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 20px;
+            transition: width 0.3s;
+        }
+        .sidebar.hidden {
+            width: 0;
+            padding: 20px 0;
+            overflow: hidden;
+        }
+        .content {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: black;
+        }
+        video {
+            width: auto;
+            height: 100%;
+        }
+        .subtitle {
+            position: absolute;
+            width: 100%;
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #sub1 {
+            bottom: 20%;
+        }
+        #sub2 {
+            bottom: 15%;
+        }
+        #sub3 {
+            bottom: 10%;
+        }
+        .history-container {
+            overflow-y: auto;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px;
+            max-height: 60%;
+            margin-top: 20px;
+        }
+        .history-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .history-item {
+            background: rgba(255, 255, 255, 0.2);
+            margin: 5px 0;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        .button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .button.red {
+            background: #e74c3c;
+        }
+        .toggle-button {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: #34495e;
+            color: white;
+            border: none;
+            padding: 10px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <button class="toggle-button" onclick="toggleSidebar()">☰</button>
+    <div class="container">
+        <div class="sidebar" id="sidebar">
+            <div>
+                <h2>Videos Disponibles</h2>
+                <button class="button" onclick="startVideo()">Cargar Video</button>
+            </div>
+            <div>
+                <h2>Historial</h2>
+                <div class="history-container">
+                    <ul id="historyList" class="history-list"></ul>
+                </div>
+                <button class="button red" onclick="resetHistory()">Reiniciar Historial</button>
+                <button class="button" onclick="downloadHistory()">Descargar Historial</button>
+            </div>
+        </div>
+        <div class="content">
+            <div class="video-container">
+                <video id="video" controls>
+                    <source src="https://drive.google.com/uc?export=download&id=1wrdcr2a4tfbeVNkT2rgL-mO1NKOmJN-b" type="video/mp4">
+                    <track id="track1" src="espanol.vtt" kind="subtitles" srclang="es" label="Español" default>
+                    <track id="track2" src="ingles.vtt" kind="subtitles" srclang="en" label="English">
+                    <track id="track3" src="deutch.vtt" kind="subtitles" srclang="de" label="Deutsch">
+                    Your browser does not support the video tag.
+                </video>
+                <div id="sub1" class="subtitle"></div>
+                <div id="sub2" class="subtitle"></div>
+                <div id="sub3" class="subtitle"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const sidebar = document.getElementById('sidebar');
+        const video = document.getElementById('video');
+        const sub1 = document.getElementById('sub1');
+        const sub2 = document.getElementById('sub2');
+        const sub3 = document.getElementById('sub3');
+        const track1 = video.textTracks[0];
+        const track2 = video.textTracks[1];
+        const track3 = video.textTracks[2];
+        const historyList = document.getElementById('historyList');
+
+        let lastPausedCue1 = null;
+        let lastPausedCue2 = null;
+        let lastPausedCue3 = null;
+        let history = JSON.parse(localStorage.getItem('subtitleHistory')) || [];
+
+        track1.mode = 'hidden';
+        track2.mode = 'hidden';
+        track3.mode = 'hidden';
+
+        function startVideo() {
+            document.querySelector('.video-container').style.display = 'block';
+        }
+
+        function toggleSidebar() {
+            sidebar.classList.toggle('hidden');
+        }
+
+        function updateSubtitles() {
+            const activeCues1 = track1.activeCues;
+            const activeCues2 = track2.activeCues;
+            const activeCues3 = track3.activeCues;
+
+            sub1.innerHTML = activeCues1.length > 0 ? activeCues1[0].text : '';
+            sub2.innerHTML = activeCues2.length > 0 ? activeCues2[0].text : '';
+            sub3.innerHTML = activeCues3.length > 0 ? activeCues3[0].text : '';
+        }
+
+        function checkNewDialogue() {
+            const activeCues1 = track1.activeCues;
+            const activeCues2 = track2.activeCues;
+            const activeCues3 = track3.activeCues;
+
+            if (activeCues1.length > 0 && activeCues1[0] !== lastPausedCue1) {
+                video.pause();
+                lastPausedCue1 = activeCues1[0];
+            }
+
+            if (activeCues2.length > 0 && activeCues2[0] !== lastPausedCue2) {
+                video.pause();
+                lastPausedCue2 = activeCues2[0];
+            }
+
+            if (activeCues3.length > 0 && activeCues3[0] !== lastPausedCue3) {
+                video.pause();
+                lastPausedCue3 = activeCues3[0];
+            }
+        }
+
+        function addToHistory(deText) {
+            const cleanDeText = deText.replace(/<\/?[^>]+(>|$)/g, ""); // Remove HTML tags
+
+            // Ensure the German text is unique
+            if (history.includes(cleanDeText)) {
+                return;
+            }
+
+            const cleanEsText = track1.activeCues.length > 0 ? track1.activeCues[0].text.replace(/<\/?[^>]+(>|$)/g, "") : "";
+            const cleanEnText = track2.activeCues.length > 0 ? track2.activeCues[0].text.replace(/<\/?[^>]+(>|$)/g, "") : "";
+            const historyEntry = `${cleanDeText} / ${cleanEnText} / ${cleanEsText}`;
+
+            history.push(historyEntry);
+            localStorage.setItem('subtitleHistory', JSON.stringify(history));
+            const listItem = document.createElement('li');
+            listItem.className = 'history-item';
+            listItem.textContent = historyEntry;
+            historyList.appendChild(listItem);
+        }
+
+        function loadHistory() {
+            history.forEach(item => {
+                const listItem = document.createElement('li');
+                listItem.className = 'history-item';
+                listItem.textContent = item;
+                historyList.appendChild(listItem);
+            });
+        }
+
+        function resetHistory() {
+            history = [];
+            localStorage.removeItem('subtitleHistory');
+            historyList.innerHTML = '';
+        }
+
+        function downloadHistory() {
+            const blob = new Blob([history.join('\n')], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'historial.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        sub3.addEventListener('click', () => {
+            if (sub3.innerHTML) {
+                addToHistory(sub3.innerHTML);
+            }
+        });
+
+        video.addEventListener('timeupdate', () => {
+            updateSubtitles();
+            checkNewDialogue();
+        });
+        video.addEventListener('seeked', updateSubtitles);
+        video.addEventListener('play', updateSubtitles);
+        video.addEventListener('pause', updateSubtitles);
+
+        // Maintain subtitle visibility in fullscreen
+        video.addEventListener('fullscreenchange', () => {
+            if (document.fullscreenElement) {
+                sub1.style.position = 'fixed';
+                sub2.style.position = 'fixed';
+                sub3.style.position = 'fixed';
+            } else {
+                sub1.style.position = 'absolute';
+                sub2.style.position = 'absolute';
+                sub3.style.position = 'absolute';
+            }
+        });
+
+        // Load history on page load
+        window.addEventListener('load', loadHistory);
+    </script>
+</body>
+</html>
