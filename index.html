@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa Interactivo - Galería de Comunidades Indígenas en Colombia</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: linear-gradient(45deg, #0288d1, #26c6da);
+            color: #fff;
+            padding: 15px 0;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .card-title {
+            color: #01579b;
+            font-weight: 700;
+            margin-bottom: 15px;
+        }
+
+        ul {
+            padding-left: 20px;
+        }
+
+        ul ul {
+            padding-left: 20px;
+            list-style-type: disc;
+        }
+
+        a {
+            color: #0288d1;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .content-wrapper {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .left-panel {
+            width: 48%;
+        }
+
+        .right-panel {
+            width: 48%;
+            position: relative;
+        }
+
+        .map-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .map-point {
+            position: absolute;
+            width: 6px; /* Reduced to 50% */
+            height: 6px; /* Reduced to 50% */
+            background-color: red;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        /* Define the positions for each community point on the map */
+        #point-wayuu { top: 5.64%; left: 59.04%; }
+        #point-nasa { top: 57.34%; left: 27.05%; }
+        #point-embera { top: 40.88%; left: 18.87%; }
+        #point-arhuacos { top: 14.50%; left: 45.01%; }
+        #point-inga { top: 65.60%; left: 21.92%; }
+        #point-tikuna { top: 92.85%; left: 72.10%; }
+
+        /* Pop-up styles */
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border: 2px solid #01579b;
+            border-radius: 8px;
+            z-index: 1000;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 80%;
+            max-width: 600px;
+            text-align: center;
+        }
+
+        .popup h3 {
+            margin-top: 0;
+        }
+
+        .close-popup {
+            cursor: pointer;
+            color: #0288d1;
+            font-weight: bold;
+            float: right;
+            font-size: 1.5rem;
+        }
+
+        /* Grid for images */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .image-grid img {
+            width: 100%;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .image-grid img.expanded {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%; /* Se ajusta el tamaño máximo al 90% del ancho de la pantalla */
+            max-height: 90%; /* Se ajusta el tamaño máximo al 90% de la altura de la pantalla */
+            z-index: 2000;
+            object-fit: contain; /* Mantiene las proporciones de la imagen */
+        }
+
+        .image-grid img.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .image-description {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            z-index: 2000;
+            max-width: 90%;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Mapa Interactivo - Galería de Comunidades Indígenas en Colombia</h1>
+    </header>
+    
+    <div class="content-wrapper">
+        <div class="left-panel">
+            <div class="card shadow">
+                <div class="card-body">
+                    <h2 class="card-title">Ficha Técnica de las Comunidades Indígenas en Colombia</h2>
+                    <ul class="list-unstyled">
+                        <li><strong>Número Total de Comunidades:</strong> Aproximadamente 115 comunidades indígenas reconocidas oficialmente.</li>
+                        <li><strong>Principales Grupos Étnicos y su distribución geográfica:</strong>
+                            <ul>
+                                <li><a id="link-wayuu">Wayúu (La Guajira)</a></li>
+                                <li><a id="link-nasa">Nasa (Cauca)</a></li>
+                                <li><a id="link-embera">Emberá (Chocó, Antioquia, Risaralda)</a></li>
+                                <li><a id="link-arhuacos">Arhuacos (Sierra Nevada de Santa Marta)</a></li>
+                                <li><a id="link-inga">Inga (Putumayo)</a></li>
+                                <li><a id="link-tikuna">Tikuna (Amazonía)</a></li>
+                            </ul>
+                        </li>
+                        <li><strong>Lenguas Habladas:</strong>
+                            <ul>
+                                <li>Número de Lenguas: 68 lenguas indígenas.</li>
+                                <li>Principales Lenguas: Wayuunaiki, Nasa Yuwe, Emberá, Kogi, Quechua (Inga).</li>
+                                <li>Estado de Vitalidad: Muchas lenguas están en peligro de extinción, aunque algunas como el Wayuunaiki son más vigorosas.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Estructura Social y Política:</strong>
+                            <ul>
+                                <li>Familia y Clan: Base de la organización social.</li>
+                                <li>Caciques: Líderes políticos y espirituales en varias comunidades.</li>
+                                <li>Consejos Comunitarios: Órganos colectivos de toma de decisiones.</li>
+                                <li>Mamos/Jaibanás: Líderes espirituales en comunidades como los Kogi y Emberá.</li>
+                                <li>Asambleas Generales: Espacios de decisión colectiva y consenso.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Prácticas Culturales y Espirituales:</strong>
+                            <ul>
+                                <li>Cosmovisión: La naturaleza es sagrada, y se busca mantener el equilibrio entre el mundo espiritual y terrenal.</li>
+                                <li>Rituales Importantes: Pagamentos (Kogi), Yagé (Amazonía), Balsa Muisca (Muisca).</li>
+                                <li>Fiestas Tradicionales: Inti Raymi (Inga), Fiesta de la Chicha (Muisca).</li>
+                                <li>Creencias Espirituales: Dualidad y equilibrio, respeto a los espíritus de la naturaleza y a los ancestros.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Modos de Subsistencia:</strong>
+                            <ul>
+                                <li>Agricultura: Cultivos diversificados como maíz, yuca, papa; técnicas sostenibles como la rotación de cultivos.</li>
+                                <li>Pesca: En ríos y lagos, con manejo sostenible.</li>
+                                <li>Caza y Recolección: Fuente importante de proteínas y medicina tradicional.</li>
+                                <li>Artesanías y Comercio: Producción de artesanías tradicionales y comercio en mercados locales y nacionales.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Principales Desafíos Actuales:</strong>
+                            <ul>
+                                <li>Desplazamiento y Pérdida de Territorio: Causado por el conflicto armado, proyectos mineros e industriales.</li>
+                                <li>Autonomía y Gobernanza: Limitada en la práctica, con intervención estatal y falta de recursos.</li>
+                                <li>Consulta Previa: A menudo inadecuada, sin una verdadera capacidad de veto.</li>
+                                <li>Preservación Cultural: Erosión cultural y pérdida de lenguas y tradiciones.</li>
+                                <li>Violencia y Derechos Humanos: Amenazas y asesinatos de líderes indígenas, con alta impunidad.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Derechos Reconocidos por el Estado:</strong>
+                            <ul>
+                                <li>Autonomía Territorial: Derecho a gobernarse según sus normas en los resguardos.</li>
+                                <li>Derechos Culturales: Protección de lenguas y tradiciones, educación bilingüe.</li>
+                                <li>Consulta Previa: Derecho a ser consultados sobre proyectos que los afecten.</li>
+                                <li>Participación Política: Representación en el Congreso y gobernanza autónoma a través de cabildos.</li>
+                            </ul>
+                        </li>
+                        <li><strong>Referencias Bibliográficas:</strong>
+                            <ul>
+                                <li><a href="https://en.wikipedia.org/wiki/Indigenous_peoples_in_Colombia" target="_blank">"Indigenous Peoples in Colombia," Wikipedia</a></li>
+                                <li><a href="https://www.cambridge.org" target="_blank">"Indigenous autonomy in Colombia: State-building processes and multiculturalism," Cambridge University Press</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+            <img src="Comunidad.jpg" alt="Mapa de Comunidades Indígenas en Colombia" class="map-image">
+            <!-- Map points -->
+            <div id="point-wayuu" class="map-point"></div>
+            <div id="point-nasa" class="map-point"></div>
+            <div id="point-embera" class="map-point"></div>
+            <div id="point-arhuacos" class="map-point"></div>
+            <div id="point-inga" class="map-point"></div>
+            <div id="point-tikuna" class="map-point"></div>
+        </div>
+    </div>
+    
+    <!-- Popups -->
+    <div id="popup-wayuu" class="popup">
+        <span class="close-popup" onclick="closePopup('popup-wayuu')">&times;</span>
+        <h3>Wayúu (La Guajira)</h3>
+        <div class="image-grid">
+            <img src="wayuu/1.jpg" alt="Ubicación Geográfica: La Guajira, Colombia; municipios de Uribia, Maicao, y Manaure.">
+            <img src="wayuu/2.jpg" alt="Lengua/Idioma: Wayuunaiki; muchos también hablan español.">
+            <img src="wayuu/3.jpg" alt="Población: Aproximadamente 380,000 personas.">
+            <img src="wayuu/4.jpg" alt="Cultura y Tradición: Danza 'Yonna' y rituales funerarios complejos; estructura matrilineal.">
+            <img src="wayuu/5.jpg" alt="Economía y Medios de Subsistencia: Ganadería, artesanía, pesca, agricultura de subsistencia.">
+            <img src="wayuu/6.jpg" alt="Salud: Uso de medicina tradicional y acceso limitado a servicios médicos modernos. <Ouutsu>">
+            <img src="wayuu/7.jpg" alt="Gastronomía: Platos de chivo, pescado y maíz; 'friche' y 'yotojoro'.">
+            <img src="wayuu/8.jpg" alt="Religión: Creencias animistas y catolicismo <Mareiwa, y Pulowi y Juya>; importancia de los sueños en su cosmología.">
+            <img src="wayuu/9.jpg" alt="Organización Social: Clanes matrilineales <eirruku> con liderazgo masculino ('Alaüla'); sistema de resolución de conflictos conocido como 'Palabrero o putchipu´u'.">
+        </div>
+    </div>
+
+    <div id="popup-nasa" class="popup">
+        <span class="close-popup" onclick="closePopup('popup-nasa')">&times;</span>
+        <h3>Nasa (Cauca)</h3>
+        <div class="image-grid">
+            <img src="nasa/1.jpg" alt="Ubicación Geográfica: Departamentos de Cauca, Huila, y Tolima.">
+            <img src="nasa/2.jpg" alt="Lengua/Idioma: Nasa yuwe; muchos también hablan español.">
+            <img src="nasa/3.jpg" alt="Población: Más de 200,000 personas.">
+            <img src="nasa/4.jpg" alt="Cultura y Tradición: Rituales como el 'Sek Buy' y el 'Inti Raymi'; uso de la minga.">
+            <img src="nasa/5.jpg" alt="Economía y Medios de Subsistencia: Agricultura, ganadería, artesanías.">
+            <img src="nasa/6.jpg" alt="Salud: Medicina tradicional combinada con servicios de salud modernos; enfoque en prevención.">
+            <img src="nasa/7.jpg" alt="Gastronomía: Mazamorra de maíz, arepas, guatila; chicha.">
+            <img src="nasa/8.jpg" alt="Religión: Sincretismo entre creencias tradicionales y cristianismo; veneración a la Pacha Mama.">
+            <img src="nasa/9.jpg" alt="Organización Social: Cabildos indígenas y asambleas comunitarias; importancia de la minga.">
+        </div>
+    </div>
+
+    <div id="popup-embera" class="popup">
+        <span class="close-popup" onclick="closePopup('popup-embera')">&times;</span>
+        <h3>Emberá (Chocó, Antioquia, Risaralda)</h3>
+        <div class="image-grid">
+            <img src="embera/1.jpg" alt="Ubicación Geográfica: Chocó, Risaralda, Antioquia, Nariño, y el Urabá.">
+            <img src="embera/2.jpg" alt="Lengua/Idioma: Variantes del idioma emberá; muchos también hablan español.">
+            <img src="embera/3.jpg" alt="Población: Aproximadamente 250,000 personas.">
+            <img src="embera/4.jpg" alt="Cultura y Tradición: Rituales de 'Jaibanismo'; danza, música, y pintura corporal.">
+            <img src="embera/5.jpg" alt="Economía y Medios de Subsistencia: Agricultura de subsistencia, pesca, caza, artesanías.">
+            <img src="embera/6.jpg" alt="Salud: Medicina tradicional y acceso limitado a servicios médicos.">
+            <img src="embera/7.jpg" alt="Gastronomía: Bodoque de plátano y pescado; chicha de maíz o chontaduro.">
+            <img src="embera/8.jpg" alt="Religión: Animismo con fuerte conexión entre naturaleza y espiritualidad.">
+            <img src="embera/9.jpg" alt="Organización Social: Sistema de clanes y liderazgo tradicional; énfasis en la cooperación y el consenso.">
+        </div>
+    </div>
+
+    <div id="popup-arhuacos" class="popup">
+        <span class="close-popup" onclick="closePopup('popup-arhuacos')">&times;</span>
+        <h3>Arhuacos (Sierra Nevada de Santa Marta)</h3>
+        <div class="image-grid">
+            <img src="arhuacos/1.jpg" alt="Ubicación Geográfica: Sierra Nevada de Santa Marta; departamentos de Magdalena, Cesar y La Guajira.">
+            <img src="arhuacos/2.jpg" alt="Lengua/Idioma: Iku o arhuaco; muchos también hablan español.">
+            <img src="arhuacos/3.jpg" alt="Población: Aproximadamente 40,000 a 50,000 personas.">
+            <img src="arhuacos/4.jpg" alt="Cultura y Tradición: Rituales guiados por los Mamos; fabricación de mochilas de lana.">
+            <img src="arhuacos/5.jpg" alt="Economía y Medios de Subsistencia: Agricultura, artesanías, conservación del territorio.">
+            <img src="arhuacos/6.jpg" alt="Salud: Medicina tradicional guiada por los Mamos; acceso limitado a servicios modernos.">
+            <img src="arhuacos/7.jpg" alt="Gastronomía: Arepas de maíz, yuca, plátano; fariña y chicha.">
+            <img src="arhuacos/8.jpg" alt="Religión: Animismo con creencia en el equilibrio del universo; guía espiritual de los Mamos.">
+            <img src="arhuacos/9.jpg" alt="Organización Social: Sistema jerárquico liderado por los Mamos; decisiones bajo orientación espiritual.">
+        </div>
+    </div>
+
+    <div id="popup-inga" class="popup">
+        <span class="close-popup" onclick="closePopup('popup-inga')">&times;</span>
+        <h3>Inga (Putumayo)</h3>
+        <div class="image-grid">
+            <img src="inga/1.jpg" alt="Ubicación Geográfica: Departamentos de Putumayo, Nariño y Caquetá.">
+            <img src="inga/2.jpg" alt="Lengua/Idioma: Inga (variante del quechua); muchos también hablan español.">
+            <img src="inga/3.jpg" alt="Población: Aproximadamente 20,000 personas.">
+            <img src="inga/4.jpg" alt="Cultura y Tradición: Influencia incaica; festividades como el 'Hatun Puncha' y 'Carnaval del Perdón'.">
+            <img src="inga/5.jpg" alt="Economía y Medios de Subsistencia: Agricultura, ganadería, recolección de plantas medicinales, artesanías.">
+            <img src="inga/6.jpg" alt="Salud: Medicina tradicional con plantas sagradas como el yagé; acceso limitado a servicios médicos.">
+            <img src="inga/7.jpg" alt="Gastronomía: Mazamorra de maíz, sopas de tubérculos, yuca, plátano; chicha y jugos de frutas amazónicas.">
+            <img src="inga/8.jpg" alt="Religión: Sincretismo entre creencias tradicionales y cristianismo; veneración a la Pacha Mama.">
+            <img src="inga/9.jpg" alt="Organización Social: Gobierno propio con cabildos y asambleas; rol central de los Taitas en la espiritualidad.">
+        </div>
+    </div>
+
+    <div id="popup-tikuna" class="popup">
+        <span class="close-popup" onclick="closePopup('popup-tikuna')">&times;</span>
+        <h3>Tikuna (Amazonía)</h3>
+        <div class="image-grid">
+            <img src="tikuna/1.jpg" alt="Ubicación Geográfica: Departamento de Amazonas, cerca de las fronteras con Brasil y Perú.">
+            <img src="tikuna/2.jpg" alt="Lengua/Idioma: Tikuna; muchos también hablan español y portugués.">
+            <img src="tikuna/3.jpg" alt="Población: Aproximadamente 40,000 a 50,000 personas en Colombia.">
+            <img src="tikuna/4.jpg" alt="Cultura y Tradición: Ritual de la 'Fiesta de la Pelazón'; pintura corporal y elaboración de máscaras.">
+            <img src="tikuna/5.jpg" alt="Economía y Medios de Subsistencia: Agricultura, pesca, caza, recolección de frutos; artesanías.">
+            <img src="tikuna/6.jpg" alt="Salud: Medicina tradicional con uso de plantas y rituales; acceso limitado a servicios modernos.">
+            <img src="tikuna/7.jpg" alt="Gastronomía: Casabe, pescado asado o en sopas; preparaciones con frutas amazónicas.">
+            <img src="tikuna/8.jpg" alt="Religión: Animismo con creencias centradas en espíritus de la naturaleza y ancestros.">
+            <img src="tikuna/9.jpg" alt="Organización Social: Estructura de clanes familiares; liderazgo comunitario con participación activa en asambleas.">
+        </div>
+    </div>
+
+    <!-- Description popup -->
+    <div id="image-description" class="image-description">
+        <p id="description-text"></p>
+    </div>
+    
+    <!-- Panzoom JS -->
+    <script src="https://unpkg.com/@panzoom/panzoom@9.4.0/dist/panzoom.min.js"></script>
+    <!-- Custom JS -->
+    <script>
+        // Function to open the popup
+        function openPopup(popupId) {
+            document.getElementById(popupId).style.display = 'block';
+        }
+
+        // Function to close the popup
+        function closePopup(popupId) {
+            document.getElementById(popupId).style.display = 'none';
+        }
+
+        // Link the map points and the text links to the popups
+        document.getElementById('point-wayuu').onclick = function() { openPopup('popup-wayuu'); };
+        document.getElementById('link-wayuu').onclick = function() { openPopup('popup-wayuu'); };
+
+        document.getElementById('point-nasa').onclick = function() { openPopup('popup-nasa'); };
+        document.getElementById('link-nasa').onclick = function() { openPopup('popup-nasa'); };
+
+        document.getElementById('point-embera').onclick = function() { openPopup('popup-embera'); };
+        document.getElementById('link-embera').onclick = function() { openPopup('popup-embera'); };
+
+        document.getElementById('point-arhuacos').onclick = function() { openPopup('popup-arhuacos'); };
+        document.getElementById('link-arhuacos').onclick = function() { openPopup('popup-arhuacos'); };
+
+        document.getElementById('point-inga').onclick = function() { openPopup('popup-inga'); };
+        document.getElementById('link-inga').onclick = function() { openPopup('popup-inga'); };
+
+        document.getElementById('point-tikuna').onclick = function() { openPopup('popup-tikuna'); };
+        document.getElementById('link-tikuna').onclick = function() { openPopup('popup-tikuna'); };
+
+        // Image click to expand and flip
+        const images = document.querySelectorAll('.image-grid img');
+        images.forEach(image => {
+            image.addEventListener('click', function() {
+                if (image.classList.contains('expanded')) {
+                    // If the image is already expanded, flip it
+                    if (image.classList.contains('flipped')) {
+                        image.classList.remove('flipped');
+                        closeDescription();
+                    } else {
+                        image.classList.add('flipped');
+                        openDescription(image.alt);
+                    }
+                } else {
+                    // Expand the image
+                    images.forEach(img => img.classList.remove('expanded'));
+                    image.classList.add('expanded');
+                }
+            });
+        });
+
+        // Close the expanded image when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!event.target.matches('.image-grid img.expanded') && !event.target.matches('.image-description')) {
+                images.forEach(img => img.classList.remove('expanded'));
+                closeDescription();
+            }
+        });
+
+        // Function to open the description
+        function openDescription(description) {
+            const descriptionPopup = document.getElementById('image-description');
+            const descriptionText = document.getElementById('description-text');
+            descriptionText.textContent = description;
+            descriptionPopup.style.display = 'block';
+        }
+
+        // Function to close the description
+        function closeDescription() {
+            const descriptionPopup = document.getElementById('image-description');
+            descriptionPopup.style.display = 'none';
+        }
+
+        // Initialize Panzoom
+        document.addEventListener('DOMContentLoaded', function () {
+            const mapImage = document.querySelector('.map-image');
+            const panzoom = Panzoom(mapImage, {
+                maxScale: 5,
+                contain: 'outside'
+            });
+            mapImage.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
+        });
+    </script>
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.amazonaws.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
